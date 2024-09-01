@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System;
 using System.Reflection.PortableExecutable;
-using PEAnalyzer.PEParser;
+using PEAnalyzer;
 
 namespace PEAnalyzer
 
@@ -23,7 +23,7 @@ namespace PEAnalyzer
                 string path = openFileDialog.FileName;
                 Console.WriteLine(path);
                 txt_path.Text = path;
-                PEParser.PEParser.pe_static_analysing(path);
+                PEParser.pe_static_analysing(path);
             }
             else
             {
