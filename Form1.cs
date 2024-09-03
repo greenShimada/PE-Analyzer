@@ -3,8 +3,8 @@ using System;
 using System.Reflection.PortableExecutable;
 using PEAnalyzer;
 
-namespace PEAnalyzer
 
+namespace PEAnalyzer
 {
     public partial class Form1 : Form
     {
@@ -24,13 +24,8 @@ namespace PEAnalyzer
                 Console.WriteLine(path);
                 txt_path.Text = path;
                 PEParser.pe_static_analysing(path);
-            }
-            else
-            {
-                Console.WriteLine("nada papai");
-            }
+                
+            }  
         }
-
-      
     }
 }

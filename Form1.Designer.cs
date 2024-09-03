@@ -31,7 +31,7 @@
             label1 = new Label();
             txt_path = new TextBox();
             btn_path = new Button();
-            label2 = new Label();
+            label_notPE = new Label();
             SuspendLayout();
             // 
             // label1
@@ -60,23 +60,23 @@
             btn_path.UseVisualStyleBackColor = true;
             btn_path.Click += btn_path_Click;
             // 
-            // label2
+            // label_notPE
             // 
-            label2.AutoSize = true;
-            label2.ForeColor = Color.Red;
-            label2.Location = new Point(12, 53);
-            label2.Name = "label2";
-            label2.Size = new Size(154, 15);
-            label2.TabIndex = 3;
-            label2.Text = "**Não é um executável PE**";
-            label2.Visible = false;
+            label_notPE.AutoSize = true;
+            label_notPE.ForeColor = Color.Red;
+            label_notPE.Location = new Point(12, 53);
+            label_notPE.Name = "label_notPE";
+            label_notPE.Size = new Size(154, 15);
+            label_notPE.TabIndex = 3;
+            label_notPE.Text = "**Não é um executável PE**";
+            label_notPE.Visible = false;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
-            Controls.Add(label2);
+            Controls.Add(label_notPE);
             Controls.Add(btn_path);
             Controls.Add(txt_path);
             Controls.Add(label1);
@@ -91,6 +91,6 @@
         private Label label1;
         private TextBox txt_path;
         private Button btn_path;
-        private Label label2;
+        private Label label_notPE;
     }
 }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms.Design;
 using PEAnalyzer;
 
 
@@ -41,11 +42,14 @@ namespace PEAnalyzer
             if (ntHeaders.Signature != 0x4550)
             {
                 Debug.WriteLine("Não é um executável PE");
+
             }
             else
             {
                 Debug.WriteLine("É um PE");
                 Debug.WriteLine(PEDicts.GetMachineName(ntHeaders.FileHeader.Machine));
+                PEMonitor Monitor = new();
+                Monitor.StartProcess(path);
             }
 
 

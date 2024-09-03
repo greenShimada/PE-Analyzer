@@ -1,13 +1,19 @@
-﻿using System;
+﻿// Classe que transcreve os valores em bytes para seu significado, usando dicionários.
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+
 
 namespace PEAnalyzer
 {
     internal class PEDicts
     {
+
         private static readonly Dictionary<ushort, string> MachineTypes = new Dictionary<ushort, string>
         {
             {0x0000,"Tipo não catalogado"},
@@ -42,6 +48,7 @@ namespace PEAnalyzer
         };
         public static string GetMachineName(ushort machineType)
         {
+            // O TryGetValue retorna um booleano e o valor correspondente, por isso precisa por a keyword out, pois só assim um método retorna mais de uma coisa em C#
             return MachineTypes.TryGetValue(machineType, out var machineName) ? machineName : "Tipo não catalogado.";
         }
 
