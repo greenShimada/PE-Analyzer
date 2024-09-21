@@ -90,6 +90,15 @@ namespace PEAnalyzer
             public uint SizeOfHeapCommit;
             public uint LoaderFlags;
             public uint NumberOfRvaAndSizes;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public IMAGE_DATA_DIRECTORY[] DataDirectory;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct IMAGE_DATA_DIRECTORY
+        {
+            public uint VirtualAddress;    // RVA da tabela
+            public uint Size;              // Tamanho da tabela
         }
     }
 }

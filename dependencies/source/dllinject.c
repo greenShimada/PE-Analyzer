@@ -7,6 +7,8 @@ __declspec(dllexport) int DebugValue(const char* msg);
 __declspec(dllexport) BOOL InitializeSuspendedProcess(PROCESS_INFORMATION* processInformation, const char* exe_name);
 __declspec(dllexport) void ResumeMainThread(PROCESS_INFORMATION* processInformation);
 __declspec(dllexport) void RunMyFunction();
+__declspec(dllexport) BOOL TestFunction(PROCESS_INFORMATION* processInformation, const char* funcionName); 
+
 
 __declspec(dllexport) int DebugValue(const char* msg) {
     MessageBoxA(NULL, msg, "Var value", 0);
@@ -50,7 +52,6 @@ __declspec(dllexport) BOOL InitializeSuspendedProcess(PROCESS_INFORMATION* proce
 }
 
 __declspec(dllexport) int InjectDLL(const char* pathdll, const char* exe_name, PROCESS_INFORMATION *processInformation) {
-   
 
     int nLength = strlen(pathdll) + 1;
     LPVOID lpRemoteString = VirtualAllocEx(processInformation->hProcess, NULL, nLength, MEM_COMMIT, PAGE_READWRITE);
@@ -122,4 +123,9 @@ __declspec(dllexport) int InjectDLL(const char* pathdll, const char* exe_name, P
     CloseHandle(hThread);
 
     return 10;
+}
+
+__declspec(dllexport) BOOL TestFunction(PROCESS_INFORMATION* processInformation, const char* functionName) {
+    LPVOID pointer = GetProcAddress(GetModuleHandleW(L"DllToBeInjected.dll"), functionName);
+    HANDLE hThread = CreateRemoteThread(processInformation->hProcess, NULL, 0,(LPTHREAD_START_ROUTINE)pointer, lpRemoteString, 0, NULL);
 }

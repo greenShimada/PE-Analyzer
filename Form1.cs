@@ -16,14 +16,21 @@ namespace PEAnalyzer
         private void btn_path_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = @"C:\";
+            openFileDialog.InitialDirectory = @"C:\ProgramData\chocolatey\lib\die\tools";
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 string path = openFileDialog.FileName;
                 Console.WriteLine(path);
                 txt_path.Text = path;
-                PEParser.pe_static_analysing(path);
+
+                PEManipulation manipulator = new PEManipulation(path);
+                if (manipulator.isPE)
+                {
+                    manipulator._InitializeSuspendedProcess();
+                    manipulator._InjectDLL();
+                    manipulator._ResumeMainThread();
+                }
                 
             }  
         }
