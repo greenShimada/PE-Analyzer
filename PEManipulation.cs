@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Text;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,17 +12,10 @@ using Microsoft.VisualBasic.ApplicationServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static PEAnalyzer.PEStructure_Class;
 
-[StructLayout(LayoutKind.Sequential)]
-public struct PROCESS_INFORMATION
-{
-    public IntPtr hProcess;
-    public IntPtr hThread;
-    public int dwProcessId;
-    public int dwThreadId;
-}
-
 namespace PEAnalyzer
 {
+    using HMODULE = IntPtr;
+    using DWORD = uint;
     public class PEManipulation
     {
 
@@ -34,22 +28,30 @@ namespace PEAnalyzer
         [DllImport(@"dlls\InjectDllProject.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern bool ResumeMainThread(ref PROCESS_INFORMATION processInformation);
 
+        [DllImport(@"dlls\InjectDllProject.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern bool FillPEStructure(ref PROCESS_INFORMATION processInformation, ref IMAGE_DOS_HEADER dosHeader, ref IMAGE_NT_HEADERS ntHeaders, [MarshalAs(UnmanagedType.LPStr)] string moduleName);
+
+
         private PROCESS_INFORMATION processInformation = new PROCESS_INFORMATION();
         private string dllPath = (@"dlls\DllToBeInjected.dll").Replace("\\\\", "\\");
         private string path;
-        public bool isPE;
 
-        public IMAGE_DOS_HEADER dosHeader;
-        public IMAGE_NT_HEADERS ntHeaders;
-        public IMAGE_FILE_HEADER fileHeader;
-        public IMAGE_OPTIONAL_HEADER optionalHeader;
-        public IMAGE_DATA_DIRECTORY[] dataDirectory;
+        public IMAGE_DOS_HEADER dosHeader = default(IMAGE_DOS_HEADER);
+        public IMAGE_NT_HEADERS ntHeaders = default(IMAGE_NT_HEADERS);
+        public IMAGE_FILE_HEADER fileHeader = default(IMAGE_FILE_HEADER);
+        public IMAGE_OPTIONAL_HEADER optionalHeader = default(IMAGE_OPTIONAL_HEADER);
+        public IMAGE_DATA_DIRECTORY dataDirectory = default(IMAGE_DATA_DIRECTORY);
+        public IMAGE_IMPORT_DESCRIPTOR pImportAddressTable = default(IMAGE_IMPORT_DESCRIPTOR);
 
+        public long iatSize;
         public PEManipulation(string path){
             this.path = path;
-            this.Static_Analysis();
+            return;
         }
-
+        public bool _FillPEStructure()
+        {
+            return FillPEStructure(ref this.processInformation, ref this.dosHeader, ref this.ntHeaders,  this.path);
+        }
         public bool _InitializeSuspendedProcess()
         {
             try
@@ -79,37 +81,24 @@ namespace PEAnalyzer
             ResumeMainThread(ref this.processInformation);
             return true;
         }
-        public void Static_Analysis()
+        public bool isPE()
         {
-            // Lê os bytes do arquivo para dentro da array fileBytes
+            IMAGE_DOS_HEADER _dosHeader;
+            IMAGE_NT_HEADERS _ntHeaders;
+
             byte[] fileBytes = File.ReadAllBytes(this.path);
-
-            // Aloca fileBytes na memória protegendo seu conteúdo do Garbage Collector e criando um ponteiro estático na posição inicial da estrutura
             GCHandle handle = GCHandle.Alloc(fileBytes, GCHandleType.Pinned);
-
-            // Atraves do ponteiro criado acima, ele lê os bytes (até o tamanho da struct definida em < >) e os coloca na variável dosHeader.
-            this.dosHeader = Marshal.PtrToStructure<PEStructure_Class.IMAGE_DOS_HEADER>(handle.AddrOfPinnedObject());
-
-            // Libera a área de memória do handle, permitindo o gabage collector a limpar ou mover essa área.
+            _dosHeader = Marshal.PtrToStructure<IMAGE_DOS_HEADER>(handle.AddrOfPinnedObject());
             handle.Free();
-
-            // No formato PE, o endereço da assinatura PE (que marca o início do cabeçalho PE) está no endereço 3C do binário, apontado por e_lfanew na struct.
-            int ntHeadersOffset = this.dosHeader.e_lfanew;
-            
-            byte[] ntHeadersBytes = new byte[Marshal.SizeOf(typeof(PEStructure_Class.IMAGE_NT_HEADERS))];
-
-            // Copio de fileBytes, a quantidade de bytes do tamanho da struct N, os valores a partir do offset de e_lfanew para a posição 0 do ntHeaderBytes.
+            int ntHeadersOffset = _dosHeader.e_lfanew;
+            byte[] ntHeadersBytes = new byte[Marshal.SizeOf(typeof(IMAGE_NT_HEADERS))];
             Array.Copy(fileBytes, ntHeadersOffset, ntHeadersBytes, 0, ntHeadersBytes.Length);
 
             handle = GCHandle.Alloc(ntHeadersBytes, GCHandleType.Pinned);
-            this.ntHeaders = Marshal.PtrToStructure<PEStructure_Class.IMAGE_NT_HEADERS>(handle.AddrOfPinnedObject());
-            this.fileHeader = this.ntHeaders.FileHeader;
-            this.optionalHeader = this.ntHeaders.OptionalHeader;
-            this.dataDirectory = this.optionalHeader.DataDirectory;
-
+            _ntHeaders = Marshal.PtrToStructure<IMAGE_NT_HEADERS>(handle.AddrOfPinnedObject());
             handle.Free();
 
-            this.isPE = (ntHeaders.Signature == 0x4550);
+            return (_ntHeaders.Signature == 0x4550 && _dosHeader.e_magic == 0x5A4D);
 
 
         }

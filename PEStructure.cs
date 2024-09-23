@@ -40,7 +40,6 @@ namespace PEAnalyzer
         public struct IMAGE_NT_HEADERS
         {
             public uint Signature;            // "PE\0\0" (0x00004550)
-
             public IMAGE_FILE_HEADER FileHeader;
             public IMAGE_OPTIONAL_HEADER OptionalHeader;
         }
@@ -60,7 +59,7 @@ namespace PEAnalyzer
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct IMAGE_OPTIONAL_HEADER
         {
-            public ushort Magic;
+            public ushort Magic;                             // 0x020B para PE32+ (64 bits)
             public byte MajorLinkerVersion;
             public byte MinorLinkerVersion;
             public uint SizeOfCode;
@@ -68,8 +67,7 @@ namespace PEAnalyzer
             public uint SizeOfUninitializedData;
             public uint AddressOfEntryPoint;
             public uint BaseOfCode;
-            public uint BaseOfData;
-            public uint ImageBase;
+            public ulong ImageBase;                          // 64 bits
             public uint SectionAlignment;
             public uint FileAlignment;
             public ushort MajorOperatingSystemVersion;
@@ -84,14 +82,15 @@ namespace PEAnalyzer
             public uint CheckSum;
             public ushort Subsystem;
             public ushort DllCharacteristics;
-            public uint SizeOfStackReserve;
-            public uint SizeOfStackCommit;
-            public uint SizeOfHeapReserve;
-            public uint SizeOfHeapCommit;
+            public ulong SizeOfStackReserve;                 // 64 bits
+            public ulong SizeOfStackCommit;                  // 64 bits
+            public ulong SizeOfHeapReserve;                   // 64 bits
+            public ulong SizeOfHeapCommit;                    // 64 bits
             public uint LoaderFlags;
             public uint NumberOfRvaAndSizes;
+
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-            public IMAGE_DATA_DIRECTORY[] DataDirectory;
+            public IMAGE_DATA_DIRECTORY[] DataDirectory;     // Array de diretórios
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -99,6 +98,27 @@ namespace PEAnalyzer
         {
             public uint VirtualAddress;    // RVA da tabela
             public uint Size;              // Tamanho da tabela
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct PROCESS_INFORMATION
+        {
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public int dwProcessId;
+            public int dwThreadId;
+        }
+
+ 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct IMAGE_IMPORT_DESCRIPTOR
+        {
+            // Union in C# is represented by using explicit layout or separate fields.
+            public uint OriginalFirstThunk; // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+            public uint TimeDateStamp;      // 0 if not bound, -1 if bound, and real date\time stamp                                    // otherwise, date/time stamp of DLL bound to
+            public int ForwarderChain;      // -1 if no forwarders
+            public uint Name;               // RVA to the DLL name
+            public uint FirstThunk;         // RVA to IAT (if bound this IAT has actual addresses)
         }
     }
 }

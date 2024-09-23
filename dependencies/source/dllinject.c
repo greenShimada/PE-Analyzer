@@ -1,13 +1,21 @@
 #include <stdio.h>
 #include <windows.h>
+#include <psapi.h>
+
+typedef struct _PE {
+    IMAGE_DOS_HEADER dosHeader;
+    IMAGE_NT_HEADERS ntHeaders;
+}PE;
+
+
 
 __declspec(dllexport) int InjectDLL(const char* pathdll, const char* exe_name);
 __declspec(dllexport) int ErrorMsg(const char* msg);
 __declspec(dllexport) int DebugValue(const char* msg);
 __declspec(dllexport) BOOL InitializeSuspendedProcess(PROCESS_INFORMATION* processInformation, const char* exe_name);
 __declspec(dllexport) void ResumeMainThread(PROCESS_INFORMATION* processInformation);
-__declspec(dllexport) void RunMyFunction();
-__declspec(dllexport) BOOL TestFunction(PROCESS_INFORMATION* processInformation, const char* funcionName); 
+__declspec(dllexport) BOOL FillPEStructure(HANDLE hProcess, IMAGE_DOS_HEADER* dosHeader, IMAGE_NT_HEADERS* ntHeaders);
+__declspec(dllexport) uintptr_t GetBaseAddress(DWORD processId, const wchar_t* moduleName);
 
 
 __declspec(dllexport) int DebugValue(const char* msg) {
@@ -125,7 +133,9 @@ __declspec(dllexport) int InjectDLL(const char* pathdll, const char* exe_name, P
     return 10;
 }
 
-__declspec(dllexport) BOOL TestFunction(PROCESS_INFORMATION* processInformation, const char* functionName) {
-    LPVOID pointer = GetProcAddress(GetModuleHandleW(L"DllToBeInjected.dll"), functionName);
-    HANDLE hThread = CreateRemoteThread(processInformation->hProcess, NULL, 0,(LPTHREAD_START_ROUTINE)pointer, lpRemoteString, 0, NULL);
-}
+
+
+
+
+
+

@@ -6,6 +6,7 @@ using PEAnalyzer;
 
 namespace PEAnalyzer
 {
+    using DWORD = uint;
     public partial class Form1 : Form
     {
         public Form1()
@@ -16,7 +17,7 @@ namespace PEAnalyzer
         private void btn_path_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = @"C:\ProgramData\chocolatey\lib\die\tools";
+            openFileDialog.InitialDirectory = @"C:\Program Files\Notepad++";
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -25,13 +26,13 @@ namespace PEAnalyzer
                 txt_path.Text = path;
 
                 PEManipulation manipulator = new PEManipulation(path);
-                if (manipulator.isPE)
+                if (manipulator.isPE())
                 {
                     manipulator._InitializeSuspendedProcess();
                     manipulator._InjectDLL();
                     manipulator._ResumeMainThread();
                 }
-                
+
             }  
         }
     }
