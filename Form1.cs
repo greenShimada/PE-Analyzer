@@ -17,7 +17,7 @@ namespace PEAnalyzer
         private void btn_path_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = @"C:\Program Files\Notepad++";
+            openFileDialog.InitialDirectory = @"C:\";
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
