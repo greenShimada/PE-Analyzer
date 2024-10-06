@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <stdio.h>
 #include "../../../DllToBeInjected/PEB.h"
+#include "../../../DllToBeInjected/myHookedF.h"
 
 #pragma region decls
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
@@ -20,20 +21,7 @@ extern "C" __declspec(dllexport) void __cdecl EnableDebugConsole();
 extern "C" __declspec(dllexport) void __cdecl Hook(uintptr_t  pTarget, HMODULE hModule, PCWSTR lpApiName, PVOID replacement);
 extern "C" __declspec(dllexport) BOOL __cdecl PatchIATEntry(uintptr_t  pTarget, PCSTR lpApiName, PIMAGE_IMPORT_DESCRIPTOR pModuleEntry, PVOID replacement);
 
-typedef void (*CreateFileW_T)(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-CreateFileW_T CreateFileWOriginal = NULL;
-void CreateFileWHook(
-    _In_           LPCWSTR                lpFileName,
-    _In_           DWORD                  dwDesiredAccess,
-    _In_           DWORD                  dwShareMode,
-    _In_opt_       LPSECURITY_ATTRIBUTES  lpSecurityAttributes,
-    _In_           DWORD                  dwCreationDisposition,
-    _In_           DWORD                  dwFlagsAndAttributes,
-    _In_opt_       HANDLE                 hTemplateFile) 
-{
-    printf("[*] CreateFileW Hooked! File path: \b%ws\n", lpFileName);
-    CreateFileWOriginal(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-}
+
 #pragma endregion
 
 // Função exportada com a assinatura correta para rundll32
@@ -62,10 +50,18 @@ extern "C" __declspec(dllexport) void __cdecl EnableDebugConsole() {
 
 extern "C" __declspec(dllexport) void __cdecl RunHook() {
     CreateFileWOriginal = (CreateFileW_T)HookIAT((uintptr_t)GetModuleHandleAReplacement(NULL), "Kernel32.dll\0", "CreateFileW", CreateFileWHook);
-    printf("\n\n\n\nCreateFileWOriginal address: 0x%p\n", CreateFileWOriginal);
+    ReadFileOriginal = (ReadFile_T)HookIAT((uintptr_t)GetModuleHandleAReplacement(NULL), "Kernel32.dll\0", "ReadFile", ReadFileWHook);
+    RegOpenKeyExOriginal = (RegOpenKeyEx_T)HookIAT((uintptr_t)GetModuleHandleAReplacement(NULL), "Advapi32.dll\0", "RegOpenKeyEx", RegOpenKeyExWHook);
+    LoadLibraryAOriginal = (LoadLibraryA_T)HookIAT((uintptr_t)GetModuleHandleAReplacement(NULL), "Kernel32.dll\0", "LoadLibraryA", LoadLibraryAWHook);
+
+    if (!LoadLibraryAOriginal) printf("\n[ERR] LoadLibraryA not found\n");
+    if (!CreateFileWOriginal) printf("\n[ERR] CreateFileW not found\n");
+    if (!ReadFileOriginal) printf("\n[ERR] ReadFile not found\n");
+    if (!RegOpenKeyExOriginal) printf("\n[ERR] RegOpenKey not found\n");
 }
 
 extern "C" __declspec(dllexport) PVOID HookIAT(uintptr_t pTarget, PCSTR lpModuleName, PCSTR lpApiName, PVOID replacement) {
+    printf("[*] Hook on %s started\n", lpApiName);
     PIMAGE_DOS_HEADER pImgDosHdr = (PIMAGE_DOS_HEADER)pTarget;
     PIMAGE_NT_HEADERS pImgNtHdr = (PIMAGE_NT_HEADERS)(pTarget + pImgDosHdr->e_lfanew);
 
@@ -87,7 +83,10 @@ extern "C" __declspec(dllexport) PVOID HookIAT(uintptr_t pTarget, PCSTR lpModule
         }
     }
     if (found) {
-        return GetProcAddressReplacement(GetModuleHandleAReplacement((char *)lpModuleName), lpApiName);
+        HMODULE hTemp = GetModuleHandleAReplacement((char*)lpModuleName);
+       
+        if (hTemp)
+            return GetProcAddressReplacement(hTemp, lpApiName);
     }
     return NULL;
 }
@@ -98,15 +97,12 @@ extern "C" __declspec(dllexport) BOOL PatchIATEntry(uintptr_t  pTarget, PCSTR lp
     
     BOOL found = FALSE;
 
-    printf("\nOriginal thunk address: 0x%p\n", *originalThunk);
-    printf("\pTarget address: 0x%p\n", pTarget);
-
     while (*originalThunk != NULL) {
       
         PIMAGE_IMPORT_BY_NAME importByName = (PIMAGE_IMPORT_BY_NAME)(pTarget + *originalThunk);
     
         if (isEqualCStr(importByName->Name, lpApiName)) {
-            printf("\n%s founded!", lpApiName);
+  
             found = TRUE;
             DWORD protect = 0;
             VirtualProtect(thunk, MY_PAGE_SIZE, PAGE_READWRITE, &protect);
@@ -122,6 +118,7 @@ extern "C" __declspec(dllexport) BOOL PatchIATEntry(uintptr_t  pTarget, PCSTR lp
 }
 
 extern "C" __declspec(dllexport) FARPROC GetProcAddressReplacement(IN HMODULE hModule, IN LPCSTR lpApiName) {
+   
     PBYTE pBase = (PBYTE)hModule;
     PIMAGE_DOS_HEADER pImgDosHdr = (PIMAGE_DOS_HEADER)pBase;
     PIMAGE_NT_HEADERS pImgNtHdr = (PIMAGE_NT_HEADERS)(pBase + pImgDosHdr->e_lfanew);
@@ -132,21 +129,21 @@ extern "C" __declspec(dllexport) FARPROC GetProcAddressReplacement(IN HMODULE hM
 
     PDWORD FunctionAddressArray = (PDWORD)(pBase + pImgExportDir->AddressOfFunctions);
     PVOID pFunctionAddress = NULL;
-    printf("\nFAFAFAFAFAFAF");
+
     if (lpApiName && (DWORD_PTR)lpApiName <= 0xFFFF) {
         
         WORD ordinal = (WORD)lpApiName & 0xFFFF;
         DWORD base = pImgExportDir->Base;
 
         if (ordinal < base || (ordinal >= base + pImgExportDir->NumberOfFunctions)) {
-            printf("null");
+         
             return NULL;
         }
 
         pFunctionAddress = (PVOID)(pBase + FunctionAddressArray[ordinal - base]);
     }
     else {
-        printf("\n\nnao ordinal");
+      
         PDWORD FunctionNameArray = (PDWORD)(pBase + pImgExportDir->AddressOfNames);
         PWORD FunctionOrdinalArray = (PWORD)(pBase + pImgExportDir->AddressOfNameOrdinals);
 
@@ -169,10 +166,16 @@ extern "C" __declspec(dllexport) FARPROC GetProcAddressReplacement(IN HMODULE hM
         *function = 0;
         function++;
 
-        pFunctionAddress = GetProcAddressReplacement(GetModuleHandleAReplacement(moduleName), lpApiName);
-        free(moduleName);
+        HMODULE hTemp = GetModuleHandleAReplacement(moduleName);
+        if (hTemp){
+            pFunctionAddress = GetProcAddressReplacement(hTemp, lpApiName);
+            free(moduleName);
+        }
+        else {         
+            return NULL;
+        }
     }
-
+    printf("\t[+] Found the function! (%s)\n", lpApiName);
     return (FARPROC)pFunctionAddress;
 }
 
@@ -183,7 +186,7 @@ extern "C" __declspec(dllexport) HMODULE GetModuleHandleAReplacement(IN char* sz
     PPEB pPeb = (PEB*)(__readfsqword(0x30)); 
 #endif
 
-  
+
     if (szModuleName == NULL) {
        
         return (HMODULE) pPeb->ImageBaseAddress;
@@ -229,7 +232,7 @@ extern "C" __declspec(dllexport) HMODULE GetModuleHandleAReplacement(IN char* sz
         if (dataEntry->BaseDllName.Length > 0) {
 
             if (isEqualCStrWide((dataEntry->BaseDllName.Buffer), szModuleName)) {
-                wprintf(L"[*] DLL ENCONTRADA!\n");
+                wprintf(L"\t[-] Found the DLL! (%ls)\n", dataEntry->BaseDllName.Buffer);
                 hModule = (HMODULE)dataEntry->DllBase;
                
                 break;
@@ -240,6 +243,7 @@ extern "C" __declspec(dllexport) HMODULE GetModuleHandleAReplacement(IN char* sz
     if (!ext) {
         free(szModuleName);
     }
+
     return (HMODULE)hModule;
 }
 
