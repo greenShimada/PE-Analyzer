@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <cstdio>
 #include <stdio.h>
-#include "../../../DllToBeInjected/PEB.h"
-#include "../../../DllToBeInjected/myHookedF.h"
+#include "PEB.h"
+#include "myHookedF.h"
 
 #pragma region decls
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
